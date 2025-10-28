@@ -44,6 +44,7 @@ form input {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  width: 100%;
 }
 
 form button {
@@ -104,3 +105,8 @@ td button:hover {
   background-color: #218838;
 }
 
+.error {
+  color: red;
+  font-size: 13px;
+  margin-top: 4px;
+}
