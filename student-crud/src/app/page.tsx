@@ -1,16 +1,12 @@
 'use client';
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import "../styles/studentCrud.css";
 
 const html2pdf = typeof window !== "undefined" ? require("html2pdf.js") : null;
 
 export default function StudentCRUD() {
-  const [students, setStudents] = useState([
-    { id: 1, name: "Asha Rao", age: 20, email: "asha@example.com", phone: "9876543210", course: "BSc", file: "" },
-    { id: 2, name: "Rahul Kumar", age: 22, email: "rahul@example.com", phone: "8765432109", course: "BCom", file: "" },
-  ]);
-
+  const [students, setStudents] = useState<any[]>([]);
   const [form, setForm] = useState({ id: null, name: "", age: "", email: "", phone: "", course: "", file: "" });
   const [errors, setErrors] = useState<any>({});
   const [isEditing, setIsEditing] = useState(false);
@@ -18,13 +14,31 @@ export default function StudentCRUD() {
   const pdfRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ✅ Load data from localStorage on mount
+  useEffect(() => {
+    const storedData = localStorage.getItem("students");
+    if (storedData) {
+      setStudents(JSON.parse(storedData));
+    } else {
+      // default entries
+      setStudents([
+        { id: 1, name: "Asha Rao", age: 20, email: "asha@example.com", phone: "9876543210", course: "BSc", file: "" },
+        { id: 2, name: "Rahul Kumar", age: 22, email: "rahul@example.com", phone: "8765432109", course: "BCom", file: "" },
+      ]);
+    }
+  }, []);
+
+  // ✅ Save data to localStorage whenever students list changes
+  useEffect(() => {
+    localStorage.setItem("students", JSON.stringify(students));
+  }, [students]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
-    setErrors((err: any) => ({ ...err, [name]: "" })); // clear error when typing
+    setErrors((err: any) => ({ ...err, [name]: "" }));
   };
 
-  // Handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -34,7 +48,7 @@ export default function StudentCRUD() {
   };
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const validatePhone = (phone: string) => /^[6-9]\d{9}$/.test(phone); // Indian mobile pattern
+  const validatePhone = (phone: string) => /^[6-9]\d{9}$/.test(phone);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,13 +57,12 @@ export default function StudentCRUD() {
 
     if (!form.name.trim()) newErrors.name = "Name is required";
     if (!form.email.trim()) newErrors.email = "Email is required";
-    else if (!validateEmail(form.email)) newErrors.email = "Enter a valid email address";
+    else if (!validateEmail(form.email)) newErrors.email = "Enter a valid email";
     if (!form.phone.trim()) newErrors.phone = "Phone number is required";
     else if (!validatePhone(form.phone)) newErrors.phone = "Enter a valid 10-digit phone number";
 
     setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) return; // stop if validation fails
+    if (Object.keys(newErrors).length > 0) return;
 
     if (isEditing) {
       setStudents((prev) =>
@@ -71,7 +84,6 @@ export default function StudentCRUD() {
       setStudents((prev) => [...prev, newStudent]);
     }
 
-    // Reset form + clear file input
     setForm({ id: null, name: "", age: "", email: "", phone: "", course: "", file: "" });
     setErrors({});
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -122,9 +134,7 @@ export default function StudentCRUD() {
       .from(clone)
       .set(options)
       .save()
-      .then(() => {
-        document.body.removeChild(tempDiv);
-      });
+      .then(() => document.body.removeChild(tempDiv));
   };
 
   return (
@@ -174,11 +184,7 @@ export default function StudentCRUD() {
 
         <div className="form-buttons">
           <button type="submit">{isEditing ? "Update" : "Add"}</button>
-          {isEditing && (
-            <button type="button" onClick={handleCancel}>
-              Cancel
-            </button>
-          )}
+          {isEditing && <button type="button" onClick={handleCancel}>Cancel</button>}
         </div>
       </form>
 
