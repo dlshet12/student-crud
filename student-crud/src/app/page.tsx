@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from "react";
-import '../styles/studentCrud.css'
+import { useRef, useState } from "react";
+import "../styles/studentCrud.css";
+
+const html2pdf = typeof window !== "undefined" ? require("html2pdf.js") : null;
 
 export default function StudentCRUD() {
   const [students, setStudents] = useState([
@@ -11,6 +13,8 @@ export default function StudentCRUD() {
 
   const [form, setForm] = useState({ id: null, name: "", age: "", email: "", course: "" });
   const [isEditing, setIsEditing] = useState(false);
+
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -60,27 +64,66 @@ export default function StudentCRUD() {
     setIsEditing(false);
   };
 
+  // 👇 Generate PDF (hide Actions column first)
+  const handleDownloadPDF = () => {
+    if (!html2pdf) return;
+    const element = document.getElementById("pdfRef");
+    if (!element) return;
+
+    // Hide actions column before generating PDF
+    const actionColumns = document.querySelectorAll(".no-pdf");
+    actionColumns.forEach((col) => ((col as HTMLElement).style.display = "none"));
+
+    const options = {
+      margin: 0.5,
+      filename: "students.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+    };
+
+    // Wait a tiny bit for the DOM to update, then generate
+    setTimeout(() => {
+      html2pdf()
+        .from(element)
+        .set(options)
+        .save()
+        .then(() => {
+          // Restore action columns after PDF generation
+          actionColumns.forEach((col) => ((col as HTMLElement).style.display = ""));
+        });
+    }, 100);
+  };
+
   return (
   <div className="container">
-    <h1>Student CRUD</h1>
-    <form onSubmit={handleSubmit}>
-      <h2>{isEditing ? "Edit Student" : "Add Student"}</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <input name="name" placeholder="Name" value={form.name} onChange={handleChange} />
-        <input name="email" placeholder="Email" value={form.email} onChange={handleChange} />
-        <input name="age" placeholder="Age" value={form.age} onChange={handleChange} />
-        <input name="course" placeholder="Course" value={form.course} onChange={handleChange} />
-      </div>
-      <div style={{ marginTop: 15 }}>
-        <button type="submit">{isEditing ? "Update" : "Add"}</button>
-        {isEditing && (
-          <button type="button" onClick={handleCancel}>
-            Cancel
-          </button>
-        )}
-      </div>
-    </form>
+  <h1>Student CRUD</h1>
 
+  <form onSubmit={handleSubmit}>
+    <h2>{isEditing ? "Edit Student" : "Add Student"}</h2>
+    <div className="form-grid">
+      <input name="name" placeholder="Name" value={form.name} onChange={handleChange} />
+      <input name="email" placeholder="Email" value={form.email} onChange={handleChange} />
+      <input name="age" placeholder="Age" value={form.age} onChange={handleChange} />
+      <input name="course" placeholder="Course" value={form.course} onChange={handleChange} />
+    </div>
+    <div className="form-buttons">
+      <button type="submit">{isEditing ? "Update" : "Add"}</button>
+      {isEditing && (
+        <button type="button" onClick={handleCancel}>
+          Cancel
+        </button>
+      )}
+    </div>
+  </form>
+
+  <div className="pdf-actions">
+    <button className="pdf-button" onClick={handleDownloadPDF}>
+      Download PDF
+    </button>
+  </div>
+
+  <div id="pdfRef">
     <table>
       <thead>
         <tr>
@@ -88,13 +131,13 @@ export default function StudentCRUD() {
           <th>Email</th>
           <th>Age</th>
           <th>Course</th>
-          <th>Actions</th>
+          <th className="no-pdf">Actions</th>
         </tr>
       </thead>
       <tbody>
         {students.length === 0 ? (
           <tr>
-            <td colSpan={5} style={{ textAlign: "center", padding: 12 }}>
+            <td colSpan={5} className="empty-row">
               No students found
             </td>
           </tr>
@@ -105,7 +148,7 @@ export default function StudentCRUD() {
               <td>{s.email}</td>
               <td>{s.age}</td>
               <td>{s.course}</td>
-              <td>
+              <td className="no-pdf">
                 <button onClick={() => handleEdit(s)}>Edit</button>
                 <button onClick={() => handleDelete(s.id)}>Delete</button>
               </td>
@@ -115,8 +158,7 @@ export default function StudentCRUD() {
       </tbody>
     </table>
   </div>
-
+</div>
 
   );
 }
-
