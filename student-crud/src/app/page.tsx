@@ -64,36 +64,40 @@ export default function StudentCRUD() {
     setIsEditing(false);
   };
 
-  // 👇 Generate PDF (hide Actions column first)
-  const handleDownloadPDF = () => {
-    if (!html2pdf) return;
-    const element = document.getElementById("pdfRef");
-    if (!element) return;
+ const handleDownloadPDF = () => {
+  if (!html2pdf) return;
+  const element = document.getElementById("pdfRef");
+  if (!element) return;
 
-    // Hide actions column before generating PDF
-    const actionColumns = document.querySelectorAll(".no-pdf");
-    actionColumns.forEach((col) => ((col as HTMLElement).style.display = "none"));
+  // Clone the table to avoid modifying the live DOM
+  const clone = element.cloneNode(true) as HTMLElement;
 
-    const options = {
-      margin: 0.5,
-      filename: "students.pdf",
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-    };
+  clone.querySelectorAll(".no-pdf").forEach((col) => col.remove());
 
-    // Wait a tiny bit for the DOM to update, then generate
-    setTimeout(() => {
-      html2pdf()
-        .from(element)
-        .set(options)
-        .save()
-        .then(() => {
-          // Restore action columns after PDF generation
-          actionColumns.forEach((col) => ((col as HTMLElement).style.display = ""));
-        });
-    }, 100);
+  const options = {
+    margin: 0.5,
+    filename: "students.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
   };
+
+  const tempDiv = document.createElement("div");
+  tempDiv.style.position = "fixed";
+  tempDiv.style.top = "-9999px";
+  tempDiv.appendChild(clone);
+  document.body.appendChild(tempDiv);
+
+
+  html2pdf()
+    .from(clone)
+    .set(options)
+    .save()
+    .then(() => {
+      document.body.removeChild(tempDiv);
+    });
+};
+
 
   return (
   <div className="container">
